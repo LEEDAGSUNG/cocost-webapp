@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cocost WebApp</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Cocost" />
+  <meta name="color-scheme" content="light dark" />
+  <style>
+    .fridge-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .fridge-table th, .fridge-table td {
+      padding: 8px;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+    @media (max-width: 768px) {
+      .fridge-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+      #main-interface {
+        flex-direction: column;
+      }
+      #sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #ddd;
+        flex-direction: row;
+        overflow-x: auto;
+      }
+      .sidebar-item {
+        flex: 1;
+        white-space: nowrap;
+      }
+    }
+    #main-interface {
+      display: flex;
+      height: calc(100vh - 60px);
+    }
+    #content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      background-color: #fafafa;
+    }
+    #sidebar {
+      display: flex;
+      flex-direction: column;
+      width: 240px;
+      background-color: #f4f4f4;
+      border-right: 1px solid #ddd;
+      padding: 20px;
+      gap: 10px;
+    }
+    .sidebar-item {
+      padding: 12px;
+      border-radius: 6px;
+      transition: background-color 0.2s ease;
+    }
+    .sidebar-item:hover,
+    .sidebar-item.active {
+      background-color: #ddd;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div id="auth-container" class="auth-mode">
+    <div class="auth-box">
+      <img src="favicon.png" alt="Logo" class="logo" />
+      <h2>로그인</h2>
+      <input type="password" id="password" placeholder="비밀번호 입력" />
+      <button id="login-btn">확인</button>
+      <br />
+      <button id="install-btn" style="display:none; margin-top:12px;">📲 Cocost 앱 설치하기</button>
+  
+    </div> <!-- 🔧 auth-box 닫는 div 복구 -->
+  </div>
+
+  </div>
+
+<div class="main-wrapper" style="display:none;">
+  <header id="top-nav">Cocost</header>
+  <div id="main-interface">
+    <div id="sidebar">
+      <ul class="category-list">
+        <li class="sidebar-item" data-page="dashboard">대시보드</li>
+        <li class="sidebar-item" data-page="fridge">냉장고</li>
+        <li class="sidebar-item" data-page="recipes">레시피</li>
+        <li class="sidebar-item" data-page="cost">코스트</li>
+        <li class="sidebar-item" data-page="coffee">커피머신</li>
+        <li class="sidebar-item" data-page="history">히스토리</li>
+        <li class="sidebar-item" data-page="settings">설정</li>
+      </ul>
+    </div>
+    <div id="content">메인 콘텐츠 영역</div>
+  </div>
+</div>
+
+  <!-- 페이지 템플릿 복원 -->
+
+<template id="cost">
+  <h2>식자재별 코스트 계산</h2>
+  <form id="cost-form">
+    <input type="text" id="cost-name" placeholder="재료명" required />
+    <input type="number" id="cost-price" placeholder="구입가격 (원)" required />
+    <input type="number" step="0.1" id="cost-qty" placeholder="수량" required />
+    <select id="cost-unit">
+      <option value="개">개</option>
+      <option value="g">g</option>
+      <option value="ml">ml</option>
+    </select>
+    <button type="submit">등록</button>
+  </form>
+  <table class="fridge-table">
+    <thead>
+      <tr>
+        <th>재료명</th>
+        <th>구입가</th>
+        <th>수량</th>
+        <th>단위</th>
+        <th>1개당 가격</th>
+        <th>삭제</th>
+      </tr>
+    </thead>
+    <tbody id="cost-list"></tbody>
+  </table>
+</template>
+
+<template id="coffee">
+  <h2>커피머신</h2>
+  <form id="coffee-form">
+    <input type="text" id="machine-name" placeholder="머신 이름" required />
+    <input type="text" id="steam-position" placeholder="스팀 위치 (예: left)" required />
+    <input type="text" id="espresso-position" placeholder="에스프레소 위치 (예: right)" required />
+    <input type="text" id="bean-name" placeholder="원두명" required />
+    <input type="number" id="bean-weight" placeholder="총량 (g)" required />
+    <input type="number" id="bean-price" placeholder="총금액 (원)" required />
+    <input type="date" id="bean-roastdate" required />
+    <button type="submit">등록</button>
+  </form>
+  <table class="fridge-table">
+    <thead>
+      <tr>
+        <th>원두명</th>
+        <th>총량(g)</th>
+        <th>총금액(원)</th>
+        <th>1g당 가격</th>
+        <th>로스팅일</th>
+        <th>삭제</th>
+      </tr>
+    </thead>
+    <tbody id="coffee-list"></tbody>
+  </table>
+</template>
+
+<template id="dashboard">
+  <h2>대시보드</h2>
+  <div class="dashboard-grid">
+    <div class="dashboard-card">
+      <h3>오늘의 상태</h3>
+      <p>무엇이든 시작해볼 수 있어!</p>
+    </div>
+    <div class="dashboard-card">
+      <h3>총 보관 식자재</h3>
+      <p id="stat-fridge">0개</p>
+    </div>
+    <div class="dashboard-card">
+      <h3>코스트 등록 항목</h3>
+      <p id="stat-cost">0개</p>
+    </div>
+    <div class="dashboard-card">
+      <h3>보관 위치 분포</h3>
+      <canvas id="fridge-chart" width="200" height="200"></canvas>
+    </div>
+    <div class="dashboard-card wide">
+      <h3>최근 활동</h3>
+      <ul>
+        <li>냉장고 식자재 추가</li>
+        <li>레시피 하나 저장됨</li>
+        <li>커피 기록 1건 입력됨</li>
+      </ul>
+    </div>
+  </div>
+</template>
+
+<template id="fridge">
+  <h2>내 냉장고</h2>
+  <form id="fridge-form">
+    <input type="text" id="item-name" placeholder="재료명" required />
+    <input type="number" step="0.1" id="item-qty" placeholder="수량" required />
+    <select id="item-unit">
+      <option value="개">개</option>
+      <option value="g">g</option>
+      <option value="ml">ml</option>
+    </select>
+    <select id="item-location">
+      <option value="냉장">냉장</option>
+      <option value="냉동">냉동</option>
+      <option value="실온">실온</option>
+    </select>
+    <input type="date" id="item-exp" placeholder="유통기한" />
+    <button type="submit">추가</button>
+  </form>
+  <table class="fridge-table">
+    <thead>
+      <tr>
+        <th>재료명</th>
+        <th>수량</th>
+        <th>보관 위치</th>
+        <th>유통기한</th>
+        <th>삭제</th>
+      </tr>
+    </thead>
+    <tbody id="fridge-list"></tbody>
+  </table>
+</template>
+
+<template id="history">
+  <h2>소비 히스토리</h2>
+  <ul id="usage-history"></ul>
+</template>
+
+<template id="settings">
+  <h2>설정</h2>
+  <p>앱 테마, 계정 등 설정</p>
+</template>
+
+  <script src="app.js"></script>
+
+  <!-- ✅ 설치 버튼 로직 -->
+  <script>
+    let deferredPrompt;
+    const installBtn = document.getElementById('install-btn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.style.display = 'block';
+    });
+
+    installBtn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          console.log('✅ Cocost 앱 설치 완료!');
+        } else {
+          console.log('❌ 설치 거절됨');
+        }
+        deferredPrompt = null;
+        installBtn.style.display = 'none';
+      }
+    });
+  </script>
+
+  <!-- ✅ 정적 service-worker 등록 -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(() => console.log('✅ Service Worker 등록됨'))
+        .catch(err => console.error('❌ 등록 실패', err));
+    }
+  </script>
+</body>
+</html>
